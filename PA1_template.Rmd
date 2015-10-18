@@ -1,25 +1,176 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template.Rmd"
+author: "Ramon Chalmeta"
+date: "18 de octubre de 2015"
+output: html_document
 ---
 
+This is an R Markdown document. With the results of the Peer Assessment 1. 
 
-## Loading and preprocessing the data
+Loading and preprocessing the data
+
+```{r, echo=TRUE}
+myData <- read.csv("activity.csv")
+```
+
+1) What is mean total number of steps taken per day?
+
+Historgram:
+
+```{r, echo=TRUE}
+  options(scipen=100)
+  diferentDates <- as.vector(unique(myData$date))
+  
+  numSteps <- vector("numeric")
+  for(index in 1:length(diferentDates))
+  {
+    currentDate <- diferentDates[index]
+    
+    myFilterDataaFrame <- myData[myData$date==currentDate,]
+    totalSteps <- sum(myFilterDataaFrame$steps, na.rm = TRUE)
+    numSteps <- rbind(numSteps, totalSteps)
+    
+  }
+  
+  hist(numSteps, breaks=length(diferentDates), main = "Steps per day",col="red", 
+       xlab = "Sum steps", ylab = "Num days steps")
+  
+  meanNumSteps <- mean(numSteps)
+  medianNumSteps <- median(numSteps)
+  
+  
+```
+
+Mean is:  `r meanNumSteps`
+
+Median is:  `r medianNumSteps`
 
 
+2) What is the average daily activity pattern?
 
-## What is mean total number of steps taken per day?
+Plot:
+
+```{r, echo=TRUE}
+  
+  diferentIntervals <- as.vector(unique(myData$interval))
+  
+  numStepsPerInterval <- vector("numeric")
+  for(index in 1:length(diferentIntervals))
+  {
+    currentInterval <- diferentIntervals[index]
+    
+    myFilterDataaFrame <- myData[myData$interval==currentInterval,]
+    totalStepsPerInterval <- sum(myFilterDataaFrame$steps, na.rm = TRUE)
+    numStepsPerInterval <- rbind(numStepsPerInterval, totalStepsPerInterval)
+  }
+  plot(diferentIntervals, numStepsPerInterval,type = "l",lty=1,
+     main = "Steps per interval", xlab = "Intervals", ylab = "Average per interval") 
+  
+  indexMaxInterval <- which.max(numStepsPerInterval)
+    
+```
+
+The interval whit maximxum number of steps is:  `r diferentIntervals[indexMaxInterval]`-`r diferentIntervals[indexMaxInterval]+5`
 
 
+3) Imputing missing values
 
-## What is the average daily activity pattern?
+```{r, echo=TRUE}
+
+   rowsWithMissValues <- myData[is.na(myData$steps),] 
+```
+
+The total number of rows with NAs is: `r nrow(rowsWithMissValues)`
 
 
+I have created a new dataset where the Na values are replced for the median value/num intervals  (calculated in the first question).
 
-## Imputing missing values
+```{r, echo=TRUE}
+  myDataRefined <- myData
+  myDataRefined[is.na(myData)] <- medianNumSteps/length(as.vector(unique(myData$interval)))
+```
+
+Historgram with data refined:
+
+```{r, echo=TRUE}
+  
+  numStepsRefined <- vector("numeric")
+  for(index in 1:length(diferentDates))
+  {
+    currentDate <- diferentDates[index]
+    
+    myFilterDataaFrame <- myDataRefined[myDataRefined$date==currentDate,]
+    totalStepsRefined <- sum(myFilterDataaFrame$steps, na.rm = TRUE)
+    numStepsRefined <- rbind(numStepsRefined, totalStepsRefined)
+    
+  }
+  
+  hist(numStepsRefined, breaks=length(diferentDates), main = "Steps per day with data refined",
+       col="blue",  xlab = "Sum steps", ylab = "Num days steps")
+  
+  meanNumStepsRefined <- mean(numStepsRefined)
+  medianNumStepsRefined <- median(numStepsRefined)
+  
+  
+```
+
+Mean with refined data is:  `r meanNumStepsRefined`
+
+Median with refined data  is:  `r medianNumStepsRefined`
+
+a) Do these values differ from the estimates from the first part of the assignment? 
+
+  The values of median is identical and the mean is very similar, therefore, the values not differ    meaningfully from the first part of the assignment.
+
+b) What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+  Is despreciable, you can included the missing data witouth problems. Your results not differ        meaningfully.
+
+4) Are there differences in activity patterns between weekdays and weekends?
 
 
+Add new column with factor weekday or weekend.
+```{r, echo=TRUE}
+  
+  weekDaymyDataRefined <- grepl("sábado|domingo",weekdays(as.Date(myDataRefined[,2])))
+  myDataRefined$weekend <- weekDaymyDataRefined
+  
+  myDataRefined$weekend[myDataRefined$weekend==TRUE] <- "weekend"
+  myDataRefined$weekend[myDataRefined$weekend==FALSE] <- "weekday"
+  
+```
+Plot weekdays/weekend:
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE}
+  
+  
+  numStepsPerIntervalWeekend <- vector("numeric")
+  numStepsPerIntervalWeekday <- vector("numeric")
+  for(index in 1:length(diferentIntervals))
+  {
+    currentInterval <- diferentIntervals[index]
+    
+    myFilterDataaFrame <- myDataRefined[myDataRefined$interval==currentInterval,]
+    
+    totalStepsPerIntervalWeekend <- sum(myFilterDataaFrame$steps[myFilterDataaFrame$weekend=="weekend"], na.rm = TRUE)
+    
+    totalStepsPerIntervalWeekday <- sum(myFilterDataaFrame$steps[myFilterDataaFrame$weekend=="weekday"], na.rm = TRUE)
+    
+    numStepsPerIntervalWeekend <- rbind(numStepsPerIntervalWeekend, totalStepsPerIntervalWeekend)
+    
+    numStepsPerIntervalWeekday <- rbind(numStepsPerIntervalWeekday, totalStepsPerIntervalWeekday)
+  }
+  
+  
+  plot(diferentIntervals, numStepsPerIntervalWeekday,type = "l",lty=1,
+     main = "Steps per interval weekday", xlab = "Intervals", ylab = "Average per interval") 
+  #lines(diferentIntervals, numStepsPerIntervalWeekend,type = "l")
+  
+
+   plot(diferentIntervals, numStepsPerIntervalWeekend,type = "l",lty=1,
+    main = "Steps per interval weekend", xlab = "Intervals", ylab = "Average per interval") 
+   #axis(4, ylim=c(0,7000), col="red",col.axis="red",las=1)
+  
+  
+  
+  ```
